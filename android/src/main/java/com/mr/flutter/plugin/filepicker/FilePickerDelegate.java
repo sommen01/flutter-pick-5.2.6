@@ -26,7 +26,8 @@ import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
 
-public class FilePickerDelegate implements PluginRegistry.ActivityResultListener, PluginRegistry.RequestPermissionsResultListener {
+public class FilePickerDelegate
+        implements PluginRegistry.ActivityResultListener, PluginRegistry.RequestPermissionsResultListener {
 
     private static final String TAG = "FilePickerDelegate";
     private static final int REQUEST_CODE = (FilePickerPlugin.class.hashCode() + 43) & 0x0000ffff;
@@ -47,17 +48,16 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                 new PermissionManager() {
                     @Override
                     public boolean isPermissionGranted(final String permissionName) {
-                        return ActivityCompat.checkSelfPermission(activity, permissionName)
-                                == PackageManager.PERMISSION_GRANTED;
+                        return ActivityCompat.checkSelfPermission(activity,
+                                permissionName) == PackageManager.PERMISSION_GRANTED;
                     }
 
                     @Override
                     public void askForPermission(final String permissionName, final int requestCode) {
-                        ActivityCompat.requestPermissions(activity, new String[]{permissionName}, requestCode);
+                        ActivityCompat.requestPermissions(activity, new String[] { permissionName }, requestCode);
                     }
 
-                }
-        );
+                });
     }
 
     public void setEventHandler(final EventChannel.EventSink eventSink) {
@@ -65,17 +65,17 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
     }
 
     @VisibleForTesting
-    FilePickerDelegate(final Activity activity, final MethodChannel.Result result, final PermissionManager permissionManager) {
+    FilePickerDelegate(final Activity activity, final MethodChannel.Result result,
+            final PermissionManager permissionManager) {
         this.activity = activity;
         this.pendingResult = result;
         this.permissionManager = permissionManager;
     }
 
-
     @Override
     public boolean onActivityResult(final int requestCode, final int resultCode, final Intent data) {
 
-        if(type == null) {
+        if (type == null) {
             return false;
         }
 
@@ -94,11 +94,13 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                             int currentItem = 0;
                             while (currentItem < count) {
                                 final Uri currentUri = data.getClipData().getItemAt(currentItem).getUri();
-                                final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
+                                final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity,
+                                        currentUri, loadDataToMemory);
 
-                                if(file != null) {
+                                if (file != null) {
                                     files.add(file);
-                                    Log.d(FilePickerDelegate.TAG, "[MultiFilePick] File #" + currentItem + " - URI: " + currentUri.getPath());
+                                    Log.d(FilePickerDelegate.TAG,
+                                            "[MultiFilePick] File #" + currentItem + " - URI: " + currentUri.getPath());
                                 }
                                 currentItem++;
                             }
@@ -108,12 +110,13 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                             Uri uri = data.getData();
 
                             if (type.equals("dir") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                uri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
+                                uri = DocumentsContract.buildDocumentUriUsingTree(uri,
+                                        DocumentsContract.getTreeDocumentId(uri));
 
                                 Log.d(FilePickerDelegate.TAG, "[SingleFilePick] File URI:" + uri.toString());
                                 final String dirPath = FileUtils.getFullPathFromTreeUri(uri, activity);
 
-                                if(dirPath != null) {
+                                if (dirPath != null) {
                                     finishWithSuccess(dirPath);
                                 } else {
                                     finishWithError("unknown_path", "Failed to retrieve directory path.");
@@ -121,9 +124,10 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                                 return;
                             }
 
-                            final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, uri, loadDataToMemory);
+                            final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, uri,
+                                    loadDataToMemory);
 
-                            if(file != null) {
+                            if (file != null) {
                                 files.add(file);
                             }
 
@@ -134,7 +138,7 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                                 finishWithError("unknown_path", "Failed to retrieve path.");
                             }
 
-                        } else if (data.getExtras() != null){
+                        } else if (data.getExtras() != null) {
                             Bundle bundle = data.getExtras();
                             if (bundle.keySet().contains("selectedItems")) {
                                 ArrayList<Parcelable> fileUris = getSelectedItems(bundle);
@@ -144,11 +148,13 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                                     for (Parcelable fileUri : fileUris) {
                                         if (fileUri instanceof Uri) {
                                             Uri currentUri = (Uri) fileUri;
-                                            final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
+                                            final FileInfo file = FileUtils.openFileStream(
+                                                    FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
 
                                             if (file != null) {
                                                 files.add(file);
-                                                Log.d(FilePickerDelegate.TAG, "[MultiFilePick] File #" + currentItem + " - URI: " + currentUri.getPath());
+                                                Log.d(FilePickerDelegate.TAG, "[MultiFilePick] File #" + currentItem
+                                                        + " - URI: " + currentUri.getPath());
                                             }
                                         }
                                         currentItem++;
@@ -179,14 +185,15 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
     }
 
     @Override
-    public boolean onRequestPermissionsResult(final int requestCode, final String[] permissions, final int[] grantResults) {
+    public boolean onRequestPermissionsResult(final int requestCode, final String[] permissions,
+            final int[] grantResults) {
 
         if (REQUEST_CODE != requestCode) {
             return false;
         }
 
-        final boolean permissionGranted =
-                grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        final boolean permissionGranted = grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED;
 
         if (permissionGranted) {
             this.startFileExplorer();
@@ -210,9 +217,9 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
     }
 
     @SuppressWarnings("deprecation")
-    private ArrayList<Parcelable> getSelectedItems(Bundle bundle){
-        if(Build.VERSION.SDK_INT >= 33){
-            return bundle.getParcelableArrayList("selectedItems", Parcelable.class);
+    private ArrayList<Parcelable> getSelectedItems(Bundle bundle) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            return bundle.getParcelableArrayList("selectedItems");
         }
 
         return bundle.getParcelableArrayList("selectedItems");
@@ -222,7 +229,8 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
     private void startFileExplorer() {
         final Intent intent;
 
-        // Temporary fix, remove this null-check after Flutter Engine 1.14 has landed on stable
+        // Temporary fix, remove this null-check after Flutter Engine 1.14 has landed on
+        // stable
         if (type == null) {
             return;
         }
@@ -255,13 +263,15 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
         if (intent.resolveActivity(this.activity.getPackageManager()) != null) {
             this.activity.startActivityForResult(intent, REQUEST_CODE);
         } else {
-            Log.e(TAG, "Can't find a valid activity to handle the request. Make sure you've a file explorer installed.");
+            Log.e(TAG,
+                    "Can't find a valid activity to handle the request. Make sure you've a file explorer installed.");
             finishWithError("invalid_format_type", "Can't handle the provided file type.");
         }
     }
 
     @SuppressWarnings("deprecation")
-    public void startFileExplorer(final String type, final boolean isMultipleSelection, final boolean withData, final String[] allowedExtensions, final MethodChannel.Result result) {
+    public void startFileExplorer(final String type, final boolean isMultipleSelection, final boolean withData,
+            final String[] allowedExtensions, final MethodChannel.Result result) {
 
         if (!this.setPendingMethodCallAndResult(result)) {
             finishWithAlreadyActiveError(result);
@@ -272,9 +282,12 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
         this.isMultipleSelection = isMultipleSelection;
         this.loadDataToMemory = withData;
         this.allowedExtensions = allowedExtensions;
-        // `READ_EXTERNAL_STORAGE` permission is not needed since SDK 33 (Android 13 or higher).
-        // `READ_EXTERNAL_STORAGE` & `WRITE_EXTERNAL_STORAGE` are no longer meant to be used, but classified into granular types.
-        // Reference: https://developer.android.com/about/versions/13/behavior-changes-13
+        // `READ_EXTERNAL_STORAGE` permission is not needed since SDK 33 (Android 13 or
+        // higher).
+        // `READ_EXTERNAL_STORAGE` & `WRITE_EXTERNAL_STORAGE` are no longer meant to be
+        // used, but classified into granular types.
+        // Reference:
+        // https://developer.android.com/about/versions/13/behavior-changes-13
         if (Build.VERSION.SDK_INT < 33) {
             if (!this.permissionManager.isPermissionGranted(Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 this.permissionManager.askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, REQUEST_CODE);
@@ -289,13 +302,14 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
 
         this.dispatchEventStatus(false);
 
-        // Temporary fix, remove this null-check after Flutter Engine 1.14 has landed on stable
+        // Temporary fix, remove this null-check after Flutter Engine 1.14 has landed on
+        // stable
         if (this.pendingResult != null) {
 
-            if(data != null && !(data instanceof String)) {
+            if (data != null && !(data instanceof String)) {
                 final ArrayList<HashMap<String, Object>> files = new ArrayList<>();
 
-                for (FileInfo file : (ArrayList<FileInfo>)data) {
+                for (FileInfo file : (ArrayList<FileInfo>) data) {
                     files.add(file.toMap());
                 }
                 data = files;
@@ -318,7 +332,7 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
 
     private void dispatchEventStatus(final boolean status) {
 
-        if(eventSink == null || type.equals("dir")) {
+        if (eventSink == null || type.equals("dir")) {
             return;
         }
 
@@ -329,7 +343,6 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
             }
         }.obtainMessage().sendToTarget();
     }
-
 
     private void clearPendingResult() {
         this.pendingResult = null;
